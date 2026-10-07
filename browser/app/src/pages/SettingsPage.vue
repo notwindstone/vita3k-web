@@ -8,6 +8,7 @@ import ToggleSwitch from '../components/ToggleSwitch.vue';
 import SegmentedControl from '../components/SegmentedControl.vue';
 import BaseDialog from '../components/BaseDialog.vue';
 import ProgressBar from '../components/ProgressBar.vue';
+import ColorSchemePicker from '../components/ColorSchemePicker.vue';
 
 const estimate = ref<{ usage?: number; quota?: number } | null>(null);
 const refreshEstimate = async () => { estimate.value = await (await loadLibrary()).storageEstimate(); };
@@ -34,6 +35,9 @@ async function removeEverything() {
 
     <h2 class="section-title">Interface</h2>
     <div class="card divide-y divide-surface">
+      <div class="px-5 py-4">
+        <ColorSchemePicker v-model="settings.colorScheme" />
+      </div>
       <SettingRow title="Touch controls" description="The on-screen buttons and sticks. Automatic shows them on touch screens, unless a gamepad is connected." stack>
         <SegmentedControl
           v-model="settings.touch"
@@ -141,6 +145,6 @@ async function removeEverything() {
 </template>
 
 <style scoped>
-.section-title { margin: 32px 4px 12px; font-size: 14px; font-weight: 500; color: #AFDAFB; }
+.section-title { margin: 32px 4px 12px; font-size: 14px; font-weight: 500; color: rgb(var(--color-primary)); }
 .section-title:first-of-type { margin-top: 8px; }
 </style>

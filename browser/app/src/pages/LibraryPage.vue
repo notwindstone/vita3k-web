@@ -127,7 +127,7 @@ async function remove(withSaves: boolean) {
 
   <!-- Import: a floating button, extended on wide screens -->
   <button
-    class="fixed z-30 right-4 sm:right-8 bottom-[max(16px,env(safe-area-inset-bottom))] sm:bottom-8 flex items-center gap-3 h-14 px-4 sm:px-5 rounded-2xl border-0 bg-primary-container text-on-primary-container font-medium cursor-pointer hover:bg-[#0d5a7e] transition-colors duration-150"
+    class="fixed z-30 right-4 sm:right-8 bottom-[max(16px,env(safe-area-inset-bottom))] sm:bottom-8 flex items-center gap-3 h-14 px-4 sm:px-5 rounded-2xl border-0 bg-primary-container text-on-primary-container font-medium cursor-pointer hover:bg-primary-container-hover transition-colors duration-150"
     aria-label="Import a game or firmware"
     @click="openImport(library.firmware.system || !library.isStatic ? 'game' : 'firmware')"
   >

@@ -183,14 +183,14 @@ async function onDrop(event: DragEvent) {
 
     <!-- Where we are -->
     <nav class="flex flex-wrap items-center gap-1 mb-4 text-sm" aria-label="Folder">
-      <a :href="filesHref([])" class="flex items-center gap-1.5 h-8 px-3 rounded-full no-underline text-on-surface-variant hover:bg-[#dee3e814]">
+      <a :href="filesHref([])" class="flex items-center gap-1.5 h-8 px-3 rounded-full no-underline text-on-surface-variant hover:bg-on-surface/8">
         <span class="i-lucide-database" />Storage
       </a>
       <template v-for="(crumb, index) in crumbs" :key="crumb.href">
         <span class="i-lucide-chevron-right text-outline-variant" />
         <a
           :href="crumb.href"
-          class="h-8 px-3 leading-8 rounded-full no-underline hover:bg-[#dee3e814] max-w-56 truncate"
+          class="h-8 px-3 leading-8 rounded-full no-underline hover:bg-on-surface/8 max-w-56 truncate"
           :class="index === crumbs.length - 1 ? 'text-on-surface font-medium' : 'text-on-surface-variant'"
           :aria-current="index === crumbs.length - 1 ? 'page' : undefined"
         >{{ crumb.name }}</a>
@@ -227,7 +227,7 @@ async function onDrop(event: DragEvent) {
         <div class="text-xs text-outline">Drop files or folders here to upload them.</div>
       </div>
       <ul v-else class="list-none m-0 p-2">
-        <li v-for="entry in entries" :key="entry.name" class="relative flex items-center gap-1 rounded-2xl hover:bg-[#dee3e80a]">
+        <li v-for="entry in entries" :key="entry.name" class="relative flex items-center gap-1 rounded-2xl hover:bg-on-surface/4">
           <component
             :is="entry.kind === 'directory' ? 'a' : 'div'"
             :href="entry.kind === 'directory' ? filesHref([...path, entry.name]) : undefined"
@@ -317,7 +317,7 @@ async function onDrop(event: DragEvent) {
   display: flex; align-items: center; gap: 12px; width: 100%; height: 44px; padding: 0 16px;
   border: 0; background: transparent; text-align: left; font-size: 14px; cursor: pointer;
 }
-.menu-item:hover { background: #dee3e814; }
+.menu-item:hover { background: rgb(var(--color-on-surface) / 0.08); }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

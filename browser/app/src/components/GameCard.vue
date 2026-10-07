@@ -28,7 +28,7 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
         <div v-else class="w-full h-full flex items-center justify-center bg-tertiary-container text-on-tertiary-container text-3xl font-semibold">
           {{ initials(game.name) }}
         </div>
-        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-[#0f141766]">
+        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-surface/40">
           <span class="flex items-center justify-center w-14 h-14 rounded-full bg-primary text-on-primary">
             <span class="i-lucide-play text-2xl ml-0.5" />
           </span>
@@ -61,5 +61,5 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
   display: flex; align-items: center; gap: 12px; width: 100%; height: 44px; padding: 0 16px;
   border: 0; background: transparent; text-align: left; font-size: 14px; cursor: pointer;
 }
-.menu-item:hover { background: #dee3e814; }
+.menu-item:hover { background: rgb(var(--color-on-surface) / 0.08); }
 </style>

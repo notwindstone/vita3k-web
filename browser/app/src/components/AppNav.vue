@@ -51,7 +51,7 @@ const items: { page: Page; label: string; icon: string }[] = [
       class="flex items-center gap-4 h-14 lg:h-12 px-4 rounded-full no-underline text-base lg:text-sm font-medium transition-colors duration-150"
       :class="route.page === item.page
         ? 'bg-secondary-container text-on-secondary-container'
-        : 'text-on-surface-variant hover:bg-[#dee3e80f]'"
+        : 'text-on-surface-variant hover:bg-on-surface/6'"
       :aria-current="route.page === item.page ? 'page' : undefined"
     >
       <span :class="item.icon" class="text-xl" />

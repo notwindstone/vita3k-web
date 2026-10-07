@@ -55,10 +55,10 @@ defineExpose({ clear: () => controls?.clear() });
 }
 .touch-controls button, .stick, .dpad { pointer-events: auto; touch-action: none; -webkit-touch-callout: none; }
 .pad-button {
-  background: #262a2ecc; border: 0; color: #DEE3E8; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--color-surface-high) / 0.8); border: 0; color: rgb(var(--color-on-surface)); padding: 0; display: flex; align-items: center; justify-content: center;
   font-weight: 600; cursor: pointer;
 }
-.pad-button.pressed, .pad-button:active { background: #AFDAFB; color: #05344B; }
+.pad-button.pressed, .pad-button:active { background: rgb(var(--color-primary)); color: rgb(var(--color-on-primary)); }
 .shoulder { position: absolute; top: 16px; width: calc(76px * var(--control-scale)); height: calc(38px * var(--control-scale)); border-radius: 999px; }
 .shoulder-left { left: max(24px, env(safe-area-inset-left)); }
 .shoulder-right { right: max(24px, env(safe-area-inset-right)); }
@@ -71,14 +71,14 @@ defineExpose({ clear: () => controls?.clear() });
 .triangle { color: #90e3c3; } .square { color: #e4aae0; } .circle { color: #f6adab; } .cross { color: #a7cffb; }
 .stick {
   position: absolute; bottom: 16px; width: calc(92px * var(--control-scale)); height: calc(92px * var(--control-scale));
-  border-radius: 50%; background: #1c202399; display: grid; place-items: center;
+  border-radius: 50%; background: rgb(var(--color-surface-container) / 0.6); display: grid; place-items: center;
 }
 .stick-left { left: max(42px, env(safe-area-inset-left)); } .stick-right { right: max(42px, env(safe-area-inset-right)); }
 .stick-thumb {
-  width: 52%; height: 52%; border-radius: 50%; display: grid; place-items: center; background: #313539dd; color: #CAD6E1;
+  width: 52%; height: 52%; border-radius: 50%; display: grid; place-items: center; background: rgb(var(--color-surface-highest) / 0.867); color: rgb(var(--color-on-surface-variant));
   font-size: 12px; pointer-events: none;
 }
-.stick.active .stick-thumb { background: #AFDAFB; color: #05344B; }
+.stick.active .stick-thumb { background: rgb(var(--color-primary)); color: rgb(var(--color-on-primary)); }
 .system-buttons { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; }
 .system-buttons button { height: 34px; width: 72px; font-size: 10px; letter-spacing: 1.2px; border-radius: 999px; }
 

@@ -1,9 +1,11 @@
 import { useStorage } from '@vueuse/core';
 import { computed } from 'vue';
+import type { ColorScheme } from './palettes';
 
 // Kept in this browser (localStorage). Session options map onto worker.js's
 // switches (vita_session.js WORKER_OPTIONS).
 export interface Settings {
+  colorScheme: ColorScheme;
   touch: 'auto' | 'on' | 'off';
   touchOpacity: number;
   touchSize: number;
@@ -20,6 +22,7 @@ export interface Settings {
 }
 
 export const defaults: Settings = {
+  colorScheme: 'blue',
   touch: 'auto',
   touchOpacity: 65,
   touchSize: 100,

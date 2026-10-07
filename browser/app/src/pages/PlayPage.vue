@@ -338,7 +338,7 @@ const dialogHint = computed(() => dialog.value?.enterButton === 'circle' ? '○ 
       </div>
 
       <!-- Stopped or failed -->
-      <div v-else-if="state.phase !== 'running'" class="absolute inset-0 z-3 flex flex-col items-center justify-center gap-4 p-6 text-center bg-[#0f1417e6]">
+      <div v-else-if="state.phase !== 'running'" class="absolute inset-0 z-3 flex flex-col items-center justify-center gap-4 p-6 text-center bg-surface/90">
         <span
           class="flex items-center justify-center w-16 h-16 rounded-full"
           :class="state.phase === 'error' ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container'"
