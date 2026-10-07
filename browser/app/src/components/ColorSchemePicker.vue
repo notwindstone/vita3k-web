@@ -6,7 +6,7 @@ const model = defineModel<ColorScheme>({ required: true });
 
 <template>
   <fieldset class="m-0 p-0 border-0 min-w-0">
-    <legend class="text-base text-on-surface mb-1">Color scheme</legend>
+    <legend class="px-0 text-base text-on-surface mb-1">Color scheme</legend>
     <p class="m-0 mb-3 text-sm text-on-surface-variant">Choose the colors of the app.</p>
     <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
       <label
