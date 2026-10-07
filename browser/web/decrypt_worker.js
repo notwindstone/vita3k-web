@@ -9,12 +9,13 @@
 //       files: [{ path, size, entry }] }  an encrypted (NoNpDrm) dump in a zip
 //     { type: 'pkg', archive: File, zrif }  a .pkg (PSN download) and its license
 //     { type: 'pup', archive: File }        a firmware .PUP
-// Out: { type: 'progress', done, total, phase, path } … then (phase: 'inflate',
-//      'unpack', 'decrypt', 'install' or 'store'; path a file, or the .PUP's name)
+// Out: { type: 'progress', done, total, phase, path } … then (phase: 'load',
+//      'prepare', 'inflate', 'unpack', 'decrypt', 'install' or 'store')
 //      { type: 'done', title, app, files: [{ path, size }], bytes, decrypted, selfs }
 //      ('pup': { type: 'done', version, roots, files, bytes, skipped }) or
 //      { type: 'error', message }
 import { zipEntrySource } from './zip.js';
+import { cacheWorkerFSReads } from './workerfs_read_cache.js';
 import { cacheClear, cacheGetFile, cacheKeyFor, cacheOpenSync, cacheReadManifest, cacheRemovePath, cacheWriteFile,
   cacheWriteManifest, cacheWriteStream, cacheWriteZipEntry, FIRMWARE_KEY } from './content_cache.js';
 
@@ -34,6 +35,7 @@ function loadModule() {
 onmessage = async ({ data }) => {
   let key = data?.key ?? null;
   try {
+    postMessage({ type: 'progress', done: 0, total: 0, phase: 'load', path: 'decryption support' });
     const M = await loadModule();
     const tools = moduleTools(M);
     let result;
@@ -51,10 +53,12 @@ onmessage = async ({ data }) => {
 };
 
 function moduleTools(M) {
+  const clearReadCache = cacheWorkerFSReads(M.WORKERFS);
   const call = (name, ...args) => M.ccall(name, 'number', args.map((a) => typeof a === 'string' ? 'string' : 'number'), args);
   const text = (name, ...args) => M.UTF8ToString(M['_' + name](...args));
   const check = (result) => { if (result < 0) throw new Error(text('vd_error')); return result; };
   const remount = (dir, type, options) => {
+    clearReadCache();
     try { M.FS.unmount(dir); } catch {}
     try { M.FS.rmdir(dir); } catch {}
     try { M.FS.mkdir(dir); } catch {} // kept when files remain in it
@@ -100,14 +104,15 @@ async function writeToStorage({ FS }, path, key, relPath, write) {
 // Blob) decrypted into key under appRoot. Returns what it stored.
 async function decryptApp(tools, inputs, key, appRoot) {
   const { M, FS, call, text, check, remount, progress } = tools;
+  progress.report('encrypted game files', 0, 'prepare');
   remount('/src', M.WORKERFS, { blobs: [...inputs].map(([name, data]) => ({ name, data })) });
   remount('/out');
   remount('/self');
-  const count = check(call('vd_open', '/src', '/src/sce_sys/package/work.bin'));
   const stored = [];
   let bytes = 0, decrypted = 0, selfs = 0;
   const store = (relative, size) => { stored.push({ path: appRoot + relative, size }); bytes += size; };
   try {
+    const count = check(call('vd_open', '/src', '/src/sce_sys/package/work.bin'));
     for (let index = 0; index < count; ++index) {
       const [kind, sizeText, relative] = text('vd_entry', index).split('\t');
       const size = Number(sizeText);
@@ -151,6 +156,7 @@ async function decryptApp(tools, inputs, key, appRoot) {
 
 async function decryptZip(tools, { archive, key, appRoot, files }) {
   tools.progress.reset(files.reduce((sum, file) => sum + file.size, 0));
+  tools.progress.report(archive.name || 'the archive', 0, 'prepare');
   await cacheClear(key);
   await cacheClear(TEMP_KEY);
   // Input: the app folder, read lazily from the archive (WORKERFS reads Blobs
@@ -158,6 +164,7 @@ async function decryptZip(tools, { archive, key, appRoot, files }) {
   const inputs = new Map();
   for (const file of files.filter((file) => file.path.startsWith(appRoot))) {
     const relative = file.path.slice(appRoot.length);
+    tools.progress.report(relative, 0, 'prepare');
     let source = await zipEntrySource(archive, file.entry);
     if (!(source instanceof Blob)) {
       tools.progress.report(relative, 0, 'inflate');

@@ -56,7 +56,7 @@ export interface SessionModule {
 export interface PackageEntry { title: string; app: string; files: number; bytes: number }
 export interface TitleInfo { title: string; name: string; version: string; icon: Blob | null }
 export interface FirmwareStatus { files: number; bytes: number; system: boolean; fonts: boolean }
-export interface ImportProgress { phase: 'inflate' | 'unpack' | 'decrypt' | 'install' | 'store'; path: string; bytes: number; total: number }
+export interface ImportProgress { phase: 'load' | 'prepare' | 'inflate' | 'unpack' | 'decrypt' | 'install' | 'store'; path: string; bytes: number; total: number }
 export interface ImportResult {
   kind: 'game' | 'firmware'; title?: string; app?: string; files: number; bytes: number;
   version?: string; roots?: string[]; decrypted?: boolean;

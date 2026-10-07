@@ -335,7 +335,7 @@ async function importFile(file, expect) {
     lastNotice = now;
     notice(text);
   };
-  const verbs = { inflate: 'Inflating', unpack: 'Unpacking', decrypt: 'Decrypting', install: 'Installing', store: 'Storing' };
+  const verbs = { load: 'Loading', prepare: 'Preparing', inflate: 'Inflating', unpack: 'Unpacking', decrypt: 'Decrypting', install: 'Installing', store: 'Storing' };
   try {
     const result = await library.importFile(file, {
       expect,

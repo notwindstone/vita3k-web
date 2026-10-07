@@ -31,7 +31,7 @@ const importedName = computed(() => library.games.find((game) => game.title === 
 const phaseText = computed(() => {
   const progress = importJob.progress;
   if (!progress) return 'Reading the file…';
-  const verbs: Record<string, string> = { inflate: 'Inflating', unpack: 'Unpacking', decrypt: 'Decrypting', install: 'Installing', store: 'Storing' };
+  const verbs: Record<string, string> = { load: 'Loading', prepare: 'Preparing', inflate: 'Inflating', unpack: 'Unpacking', decrypt: 'Decrypting', install: 'Installing', store: 'Storing' };
   const verb = verbs[progress.phase] ?? progress.phase;
   return `${verb} ${progress.path}`;
 });

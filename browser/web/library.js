@@ -71,8 +71,8 @@ export function fileKind(name) {
 // Imports a game or firmware file into storage.
 //   expect: 'game' | 'firmware' | undefined (either)
 //   zrif(fileName): resolves to a .pkg's zRIF license (asked when needed)
-//   onProgress({ phase, path, bytes, total }): phase 'inflate', 'unpack',
-//   'decrypt', 'install' or 'store' (what happens to path)
+//   onProgress({ phase, path, bytes, total }): phase 'load', 'prepare',
+//   'inflate', 'unpack', 'decrypt', 'install' or 'store' (what happens to path)
 // Resolves { kind: 'firmware', version?, roots?, files, bytes } or
 // { kind: 'game', title, app, files, bytes, decrypted? }.
 export async function importFile(file, { expect, zrif, onProgress = () => {} } = {}) {

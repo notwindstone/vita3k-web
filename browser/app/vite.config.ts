@@ -23,7 +23,7 @@ const runtimeServer = process.env.VITA3K_RUNTIME;
 const dist = resolve(import.meta.dirname, process.env.VITA3K_DIST || '../../build/web64/dist');
 const web = resolve(import.meta.dirname, '../web');
 const runtimePaths = ['/worker.js', '/thread_bridge.js', '/library.js', '/vita_session.js', '/pad_input.js', '/capabilities.js',
-  '/content_cache.js', '/zip.js', '/decrypt_worker.js', '/save_sync.js', '/gxm_scene.js', '/gpu_queue.js', '/gxp_shader_adapter.js',
+  '/content_cache.js', '/zip.js', '/decrypt_worker.js', '/workerfs_read_cache.js', '/save_sync.js', '/gxm_scene.js', '/gpu_queue.js', '/gxp_shader_adapter.js',
   '/gles_webgl.js', '/audio_input.js', '/audio_ring_worklet.js', '/storage.js', '/player-config.json', '/manifest.json',
   '/coi.js', '/coi_sw.js', '/wasm64', '/wasm32', '/shaders', '/decrypt', '/stage', '/aot', '/aot.wasm', '/aot-mt'];
 const isRuntime = (path: string) => runtimePaths.some((prefix) => path === prefix || path.startsWith(prefix + '/'));
