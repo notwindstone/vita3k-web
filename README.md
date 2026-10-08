@@ -9,7 +9,7 @@ This is a web port of Vita3K, a PlayStation Vita emulator written in C++, compil
 I had two reasons:
 
 - Persona 4 Golden in browser :D
-- After seeing how far AI models have advanced, I wanted to see if an average university student who doesn't have much time but has a 20$ subscription to Claude/ChatGPT and a bunch of free AI models could make something in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
+- After seeing how far AI models have advanced, I wanted to see if an average university student who doesn't have much time but has a 20$ subscription to Claude/ChatGPT and a bunch of free AI models could lead the AI models to make something extremely complex in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
 
 ## How does this work?
 
@@ -23,11 +23,27 @@ The ARM Thumb instructions of the game are fed into Dynarmic that produces an in
 
 Now, the Wasm emitter can't translate everything - some operations simply don't have browser equivalents (either intentionally or unintentionally). What happens to them? It's time to learn about the just-in-time (JIT) compiler that exists in this web port.
 
-The JIT compiler is used when the game reaches for a function pointer that the AOT module does not have, loads a new module, or self-modifies the code. The JIT compiler translates the Dynarmic IR into a small Wasm module using the same Wasm emitter as the AOT compiler. Those Wasm modules cover at least ARM block
+The JIT compiler is used when the game loads a new module, reaches for a function pointer that the AOT module lacks, or self-modifies the code. The JIT compiler translates the Dynarmic IR into a small Wasm module using the same Wasm emitter as the AOT compiler. Those Wasm modules cover at least one ARM block and are created by crossing the JS boundary, but they communicate to each other through the emulator Wasm module (i.e., JIT compiled Wasm module <-> emulator Wasm module <-> JIT compiled Wasm module).
 
-Untranslatable blocks are excluded from the recompiled AOT module.
+If you want to get deeper into technical details, expand the following block.
 
+<details>
 
+1. <code>transfer(state, remaining, pc) -> ExitReason</code>
+
+This is a helper function inside the AOT module that is used to find a Wasm block and a Wasm function in the fixed-size, AOT filled array of Wasm block and Wasm function numeric names (e.g., block 6 of a function 9), with program counters (PC) as keys, which are basically the function address. If no such function is found, <code>transfer</code> returns <code>Miss</code> as the <code>ExitReason</code>, which means that the required function does not live in the AOT module. Now, someone has to decide what to execute next in such case...
+
+2. <code>dispatch(state, remaining, map_base, epoch_addr) -> ExitReason</code>
+
+This is another helper function inside the AOT module that is used to find a JIT compiled Wasm module in a gradually filled (on every new JIT compiled Wasm modules) hash map of 2048 entries. The hash map keys represent CPU mode bits (Thumb or ARM, Floating-Point Status and Control Register (FPSCR) mode, etc.) + PC, e.g., <code>0000000181000100</code> for PC <code>0x81000100</code> and Thumb (1). Now, the hash map points to the <code>run</code> function of a Wasm module in contrast to <code>transfer</code>'s table that pointed to both the Wasm block and the Wasm function. That Wasm function is then called indirectly, making a Wasm module boundary crossing. If the hash map does not have an entry for such key, <code>Miss</code> is returned by the dispatcher, which leads to another Wasm module boundary crossing - now we are in the emulator's module written in C++ and compiled into Wasm by Emscripten. The JIT compiler is called, the JS boundary crossing is happening for a Wasm module  compilation, the <code>region_cache</code> shared hash map is then filled with the newly created Wasm module.
+
+Now, the emulator's module: <code>region_cache</code> is a private record with the limit of 1024 cached JIT compiled Wasm modules. The dispatcher's hash map is a derived copy of that record. If you properly understood the previous paragraph, then you should have a question by now: the hash map inside the emulator's module stores up to 1024 modules, but the dispatcher's hash map has up to 2048 modules stored. What is going on here? The thing is, the dispatcher's hash map is always at least half empty...
+
+Uhm, what? Why?
+
+</details>
+
+So, going back to "what happens to untranslatable blocks": they are simply excluded from the recompiled AOT module! If the game ever needs that block at runtime, the JIT compiler will try to translate that block, and the emulation will stop with an explicit emitter rejection. Otherwise, the game continues to work.
 
 ### Rendering
 
@@ -65,7 +81,7 @@ The storage is implemented via Origin Private File Storage (OPFS). The firmware,
 
 ## Compatibility
 
-The web port of the emulator currently runs a small subset of homebrew programs and commercial games.
+The web port of the emulator currently runs an unknown subset of homebrew programs and commercial games.
 
 ## Gallery
 
@@ -112,3 +128,4 @@ Simply support the original creators of Vita3K.
 The purpose of this emulator is not to enable illegal activity. You can dump games from a Vita by using [NoNpDrm](https://github.com/TheOfficialFloW/NoNpDrm) or [FAGDec](https://github.com/CelesteBlue-dev/PSVita-RE-tools/tree/master/FAGDec/build). You can get homebrew programs from [VitaDB](https://www.rinnegatamante.eu/vitadb/#/).
 
 PlayStation, PlayStation Vita, and PlayStation Network are all registered trademarks of Sony Interactive Entertainment Inc. This emulator is not related to or endorsed by Sony, or derived from confidential materials belonging to Sony.
+
