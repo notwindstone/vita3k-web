@@ -1,89 +1,114 @@
-# Vita3K
+## What is this?
 
-[![C/C++ CI](https://github.com/Vita3K/Vita3K/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/Vita3K/Vita3K/actions/workflows/c-cpp.yml)
-[![Release](https://img.shields.io/github/v/release/Vita3K/Vita3K-builds?include_prereleases)](https://github.com/Vita3K/Vita3K/releases)
-[![Vita3K discord server](https://img.shields.io/discord/408916678911459329?color=5865F2&label=Vita3K%20&logo=discord&logoColor=white)](https://discord.gg/6aGwQzh)
+This is a web port of Vita3K, a PlayStation Vita emulator written in C++, compiled to WebAssembly (Wasm) with Emscripten. The project is statically hosted on GitHub Pages, where you can import the PlayStation Vita firmware/your own games and play directly in modern browsers, whether it is Chrome, Firefox, or Safari.
 
-## Introduction
+\screenshots{don't forget to add the website screenshots}
 
-Vita3K is an experimental PlayStation Vita emulator for Windows, Linux, macOS and Android.
+## Why?
 
-* [Website](https://vita3k.org/) (information for users)
-* [Wiki](https://github.com/Vita3K/Vita3K/wiki) (information for developers)
-* [Discord server](https://discord.gg/MaWhJVH) (recommended)
+I had two reasons:
 
-## Browser port
+- Persona 4 Golden in browser :D
+- After seeing how far AI models have advanced, I wanted to see if an average university student who doesn't have much time but has a 20$ subscription to Claude/ChatGPT and a bunch of free AI models could make something in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
 
-This repository also carries a WebAssembly/WebGPU port under `browser/`.
-[ARCHITECTURE.md](./ARCHITECTURE.md) maps where its parts live and
-[SCRIPTS.md](./SCRIPTS.md) has the build, test and run commands.
+## How does this work?
+
+### Introduction
+
+Since this is a web port of Vita3K, this project is built with a restricted set of tools available in browsers and is based on JavaScript (JS) and Wasm. Both the low-level emulation (LLE) and high-level emulation (HLE) were used. In this project, LLE has a form of emulating the ARM Thumb instruction set architecture (ISA) for the games while the HLE is used for emulating the PlayStation Vita system calls and libraries (except some modules, like `sysmodule.skprx`, `libscemp4`, or `libc.suprx`).
+
+### ARM Thumb to Wasm
+
+The ARM Thumb instructions of the game are fed into Dynarmic that produces an intermediate representation (IR). The Dynarmic IR is then scanned ahead-of-time (AOT) for functions that can be recompiled into Wasm. The AOT scanning searches for functions to translate in entry points, exports, exception tables, relocations, switch tables, etc. Once the scan is over, the AOT compiler translates the found functions into a large Wasm module using the Wasm emitter. That Wasm module is then executed.
+
+Now, the Wasm emitter can't translate everything - some operations simply don't have browser equivalents (either intentionally or unintentionally). What happens to them? It's time to learn about the just-in-time (JIT) compiler that exists in this web port.
+
+The JIT compiler is used when the game reaches for a function pointer that the AOT module does not have, loads a new module, or self-modifies the code. The JIT compiler translates the Dynarmic IR into a small Wasm module using the same Wasm emitter as the AOT compiler. Those Wasm modules cover at least ARM block
+
+Untranslatable blocks are excluded from the recompiled AOT module.
+
+
+
+### Rendering
+
+PlayStation Vita has its own low-level graphics API named GXM that handles rendering and shaders. Shaders have their own format named GXP. To make it possible for emulated game frames to be rendered on a browser canvas element, the GXM calls and GXP shaders are translated to WebGPU calls and WebGPU Shader Language (WGSL), respectively, at runtime. To avoid lots of expensive JS boundary crossings, the GXM calls are batched per one frame. GXP shaders are translated to Standard Portable Intermediate Representation - Vulkan (SPIR-V), and SPIR-V is translated to WGSL with Naga. GXP shader conversions are cached.
+
+PlayStation Vita display has a resolution of 960x544 pixels, so the web port renders games in this resolution as well with an option to enable 2x scaling.
+
+### Memory
+
+The PlayStation Vita has a 4 GiB random access memory (32-bit memory addresses), but the web port uses an array buffer (or `SharedArrayBuffer` in case of multi-threading) up to 8 GiB. The Emscripten static data, stacks, heap, and other emulator data start from `0x000000000` to `0x100000000` (excluding), and the emulated game memory starts from `0x100000000` to `0x200000000` (excluding). The emulated memory accesses are translated to the Memory64 linear memory accesses using a simple offset, e.g., `0x100000000 + EmulatedGameAddres`.
+
+### Threads
+
+The web port supports both the single-threaded and multi-threaded emulation of games. The single-threaded version handles emulated game threads (created by calling `sceKernelCreateThread`) in a single web worker by using Asyncify fibers without a true parallelism. The performance of the single-threaded version is, of course, worse than the multi-threaded version, and the audio often feels laggy. The multi-threaded design follows the "one emulated game thread per one web worker" idea, uses `Atomics#wait` for thread blocking, and has a true parallelism, unless the amount of workers exceeds the amount of CPU threads (in which case, concurrency is a more suited term). Since creating web workers is expensive time-wise (10-20 milliseconds), the web port initializes a pool of several workers before launching the game, then creates new ones when the amount of available workers gets small. The threads implementation has the following structure.
+
+```
+Main JS thread (User Interface (UI) and AudioWorklet for playing audio signals from audio ring buffer (stored in the emulator memory))
+  | <---> Main web worker (the owner of the rendering pipeline, input, and files)
+    | <---> Web worker for the game thread 1 (executes the game instructions and redirects the graphics and dialogs work to the main web worker)
+    | <---> Web worker for the game thread 2 (same)
+    ...
+```
+
+In a single-threaded version, the main web worker has only one sub-worker.
+
+Some statistics: Persona 4 Golden and Limbo had spawned 17 and 11 threads, respectively, in my short playthrough.
+
+### Media, UI, and storage
+
+The desktop version of Vita3K is using a Simple DirectMedia Layer (SDL) to handle windows, input, audio, threads, and timers. SDL is a cross-platform library written in C++, but it was never meant to be launched in browsers with Wasm, and it relies on API that is unavailable in browsers. SDL is mostly unused for this web port. Instead, the existing browser API is used for handling windows, input, audio, threads, and timers. For example, SDL window creation is replaced by a `<canvas />` element (which is handed to the web worker as an `OffscreenCanvas`).
+
+As for the emulator UI, a Vue 3 framework was used. The in-game system dialogs also use Vue 3 components: whenever `sceMsgDialog` (or another system call) is executed, the emulated game code in Wasm exits into the host code in another Wasm module (`msg_dialog_bridge.cpp` in this case), where the host exits into JS (a bit more expensive boundary crossing in contrast to Wasm module <-> Wasm module), where a Vue 3 component is then rendered, and the users's dialog button click is then forwarded into the game code in Wasm by crossing JS -> emulator Wasm module -> game Wasm module. Touch/overlay inputs, audio, and threads also cross the JS boundary.
+
+The storage is implemented via Origin Private File Storage (OPFS). The firmware, game, and saves are stored there. The web port allows you to see and edit files in the Files page.
 
 ## Compatibility
 
-The emulator currently runs most homebrew programs and commercial games.
-
-- [Homebrew compatibility page](https://vita3k.org/compatibility-homebrew.html)
-- [Commercial compatibility page](https://vita3k.org/compatibility.html)
+The web port of the emulator currently runs a small subset of homebrew programs and commercial games.
 
 ## Gallery
 
-|               **Persona 4 Golden** by Atlus                   |                     **A Rose in the Twilight** by Nippon Ichi Software                         |
-| :-----------------------------------------------------------: | :--------------------------------------------------------------------------------------------: |
-| ![Persona 4 Golden screenshot](./_readme/screenshots/P4G.png) | ![A Rose in the Twilight screenshot](./_readme/screenshots/A%20Rose%20in%20the%20Twilight.png) |
+\screenshots_in_a_table{add screenshots of played games}
 
-|                  **Alone with You** by Benjamin Rivers                     |                 **VA-11 HALL-A** by Sukeban Games                    |
-| :------------------------------------------------------------------------: | :------------------------------------------------------------------: |
-| ![Alone with You screenshot](./_readme/screenshots/Alone%20With%20You.png) | ![VA-11 HALL-A screenshot](./_readme/screenshots/VA-11%20HALL-A.png) |
+## Performance
 
-|              **Fruit Ninja** by Halfbrick Studios                  |                **Jetpack Joyride** by Halfbrick Studios                    |
-| :----------------------------------------------------------------: | :------------------------------------------------------------------------: |
-| ![Fruit Ninja Screenshot](./_readme/screenshots/Fruit%20Ninja.png) | ![Jetpack Joyride Screenshot](./_readme/screenshots/Jetpack%20Joyride.png) |
+The following table provides FPS measurements for P4G and Limbo in default configurations for the player (AOT compilation, multi-threading, Memory64, and a separate thread for rendering 3D scenes).
+
+|                                                                                                     | Persona 4 Golden                                                            | Limbo                                                                                                 |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Honor NMH-WDX9, a laptop<br>- AMD Ryzen 5 5500U;<br>- AMD Radeon RX Vega 7;<br>- 16 GB of DDR4 RAM. | 960x544: 30 FPS (Chrome, Windows 10)<br>960x544: 20-30 FPS (Firefox, NixOS) | 960x544: 30 FPS (Firefox, NixOS)<br>An FPS hack works here and gives 48-55 FPS                        |
+| PC<br>- Ryzen 3 3100;<br>- AMD Radeon RX 6600;<br>- 16 GB of DDR4 RAM.                              | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)                  | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)<br>An FPS hack works here and gives 60 FPS |
+
+Phones have horrible performance as of now, supposedly due to a heavy difference on how WebGPU calls are implemented and executed under the hood in Android in contrast to desktop platforms.
 
 ## License
 
-Vita3K is licensed under the **GPLv2** license. This is largely dictated by external dependencies, most notably Unicorn.
-
-## Downloads
-
-You can download the latest builds from [here](https://github.com/Vita3K/Vita3K/releases/tag/continuous).
-
-* Windows
-  * Requirements:
-    * [Microsoft Visual C++ 2015-2022 Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-* Linux
-  * Arch based:
-    * [vita3k-bin](https://aur.archlinux.org/packages/vita3k-bin)<sup><small>AUR</small></sup>
-    * [vita3k-git](https://aur.archlinux.org/packages/vita3k-git)<sup><small>AUR</small></sup>
-  * Requirements:
-    * xdg-desktop-portal
-    * OpenGL or Vulkan runtime libraries
-* Android
-    * [Adreno drivers](https://github.com/K11MCH1/AdrenoToolsDrivers/releases/)
-* Others
-  * [Download Artifact](https://github.com/Vita3K/Vita3K/actions?query=event%3Apush+is%3Asuccess+branch%3Amaster)
-  * [Old builds](https://github.com/Vita3K/Vita3K-builds/releases)
+This web port is licensed under the **GPLv2** license, just like Vita3K.
 
 ## Building
 
-Please see [`building.md`](./building.md).
-
-## Running
-Check our [quickstart guide](https://vita3k.org/quickstart) to make sure your computer meets the minimum requirements to run Vita3K.  
-Don't forget to have your graphics driver up to date and to install the [Visual C++ 2015-2022 Redistributable](https://aka.ms/vs/17/release/VC_redist.x64.exe) if you are a Windows user.  
+Please see uhh
 
 ## Bugs and issues
-The project is in an early stage, so please be mindful when opening new issues. Expect crashes, glitches, low compatibility and poor performance.
 
-## Thanks
-Thanks go out to people who offered advice or otherwise made this project possible, such as Davee, korruptor, Rinnegatamante, ScHlAuChi, Simon Kilroy, TheFlow, xerpi, xyz, Yifan Lu and many others.
+Uhh
+
+## Credits
+
+Thanks go out to all people who contributed to Vita3K.
+
+This web port did not have any human contributions, and everything was made by AI models. The only things that were made by a human are `README.md` (yes, this file that you are reading right now) and a web port logo that was drawn in Krita.
+
 
 ## Donations
+
+Simply support the original creators of Vita3K.
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/vita3k)
-<br>
-Thank you to the supporters and to all those who support us on our [ko-fi](https://ko-fi.com/vita3K).
-* Among them, those who subscribed to the Nibble Tier and upper: **j0hnnybrav0, Mored4u, TacoOblivion, Undeadbob and uplush**
 
 ## Note
+
 The purpose of this emulator is not to enable illegal activity. You can dump games from a Vita by using [NoNpDrm](https://github.com/TheOfficialFloW/NoNpDrm) or [FAGDec](https://github.com/CelesteBlue-dev/PSVita-RE-tools/tree/master/FAGDec/build). You can get homebrew programs from [VitaDB](https://www.rinnegatamante.eu/vitadb/#/).
 
-PlayStation, PlayStation Vita and PlayStation Network are all registered trademarks of Sony Interactive Entertainment Inc. This emulator is not related to or endorsed by Sony, or derived from confidential materials belonging to Sony.
+PlayStation, PlayStation Vita, and PlayStation Network are all registered trademarks of Sony Interactive Entertainment Inc. This emulator is not related to or endorsed by Sony, or derived from confidential materials belonging to Sony.
