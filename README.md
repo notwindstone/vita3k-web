@@ -1,3 +1,19 @@
+# Vita3K web port
+
+## Gallery
+
+|               **Persona 4 Golden** by Atlus                   |                     **A Rose in the Twilight** by Nippon Ichi Software                         |
+| :-----------------------------------------------------------: | :--------------------------------------------------------------------------------------------: |
+| ![Persona 4 Golden screenshot](./_readme/screenshots/P4G.png) | ![A Rose in the Twilight screenshot](./_readme/screenshots/A%20Rose%20in%20the%20Twilight.png) |
+
+|                  **Alone with You** by Benjamin Rivers                     |                 **VA-11 HALL-A** by Sukeban Games                    |
+| :------------------------------------------------------------------------: | :------------------------------------------------------------------: |
+| ![Alone with You screenshot](./_readme/screenshots/Alone%20With%20You.png) | ![VA-11 HALL-A screenshot](./_readme/screenshots/VA-11%20HALL-A.png) |
+
+|              **Fruit Ninja** by Halfbrick Studios                  |                **Jetpack Joyride** by Halfbrick Studios                    |
+| :----------------------------------------------------------------: | :------------------------------------------------------------------------: |
+| ![Fruit Ninja Screenshot](./_readme/screenshots/Fruit%20Ninja.png) | ![Jetpack Joyride Screenshot](./_readme/screenshots/Jetpack%20Joyride.png) |
+
 ## What is this?
 
 This is a web port of Vita3K, a PlayStation Vita emulator written in C++, compiled to WebAssembly (Wasm) with Emscripten. The project is statically hosted on GitHub Pages, where you can import the PlayStation Vita firmware/your own games and play directly in modern browsers (Chrome and Firefox for now since Safari does not support Memory64).
@@ -37,7 +53,7 @@ This is a helper function inside the AOT module that is used to find a Wasm bloc
 
 This is another helper function, but it is located in a separate small Wasm module and is used to find a JIT compiled Wasm module in a gradually filled (on every new JIT compiled Wasm modules) hash map of 2048 entries. The hash map keys represent translation state (Thumb or ARM, Floating-Point Status and Control Register (FPSCR) mode, etc.) + PC, e.g., <code>0000000181000100</code> for PC <code>0x81000100</code> and Thumb (1). Now, the hash map points to the <code>run</code> function of a Wasm module in contrast to <code>transfer</code>'s table that pointed to both the Wasm block and the Wasm function. That Wasm function is then called indirectly, making a Wasm module boundary crossing. If the hash map does not have an entry for such key, <code>Miss</code> is returned by the dispatcher, which leads to another Wasm module boundary crossing - now we are in the emulator's module written in C++ and compiled into Wasm by Emscripten. The JIT compiler is called, the JS boundary crossing is happening for a Wasm module  compilation, <code>region_cache</code> is then filled with the newly created Wasm module.
 
-Now, the emulator's module: <code>region_cache</code> is a private ordered tree (<code>std::map</code>) with the limit of 1024 cached JIT compiled Wasm modules. The dispatcher's hash map is a derived copy of that record. If you properly understood the previous paragraph, then you should have a question by now: <code>region_cache</code> inside the emulator's module stores up to 1024 modules, but the dispatcher's hash map can store up to 2048 modules. What is going on here? The answer that several AI models gave me here is that "hash maps stay fast only when roughly half empty, so the map is built twice as big as the cache on purpose". In a third volume of the book "Art of Computer Programming" by D. E. Knuth, it is demonstrated that the average number of accesses in a successful search by linear probing with a load factor of 0.5 is <strong>1.5</strong>, with a load factor of 0 is <strong>1</strong>, and with a load factor of 0.8 is <strong>3</strong>, making the hash map size of 2048 entries a sweet spot.
+Now, the emulator's module: <code>region_cache</code> is a private ordered tree (<code>std::map</code>) with the limit of 1024 cached JIT compiled Wasm modules. The dispatcher's hash map is a derived copy of that record. If you properly understood the previous paragraph, then you should have a question by now: <code>region_cache</code> inside the emulator's module stores up to 1024 modules, but the dispatcher's hash map that is derived from <code>region_cache</code> can store up to 2048 modules. What is going on here? The answer that several AI models gave me here is that "hash maps stay fast only when roughly half empty, so the map is built twice as big as the cache on purpose". In a third volume of the book "Art of Computer Programming" by D. E. Knuth, it is demonstrated that the average number of accesses in a successful search by linear probing with a load factor of 0.5 is <strong>1.5</strong>, with a load factor of 0 is <strong>1</strong>, and with a load factor of 0.8 is <strong>3</strong>, making the hash map size of 2048 entries, apparently, a sweet spot.
 
 </details>
 
@@ -79,10 +95,6 @@ The storage is implemented via Origin Private File System (OPFS). The firmware, 
 
 The web port of the emulator currently runs an unknown subset of homebrew programs and commercial games.
 
-## Gallery
-
-\screenshots_in_a_table{add screenshots of played games}
-
 ## Performance
 
 The following table provides FPS measurements for P4G and Limbo in default configurations for the player (AOT compilation, multi-threading, Memory64, and a separate thread for rendering 3D scenes).
@@ -100,17 +112,17 @@ This web port is licensed under the **GPL-2.0-or-later** license, just like Vita
 
 ## Building
 
-Please see uhh
+Please see [`browser/BUILDING.md`](browser/BUILDING.md).
 
 ## Bugs and issues
 
-Uhh
+The project is in an early stage, so please be mindful when opening new issues. Expect crashes, glitches, low compatibility, and poor performance.
 
 ## Credits
 
 Thanks go out to all people who contributed to Vita3K.
 
-The web-specific code did not have any human contributions and was fully written by AI models. The only things that were made by a human are `README.md` (yes, this file that you are reading right now) and a web port logo that was drawn in Krita.
+The web-specific code did not have any human contributions and was fully written by AI models. The only things that were made by a human are `README.md` and a web port logo that was drawn in Krita.
 
 ## Donations
 
