@@ -1,5 +1,16 @@
 # Vita3K web port
 
+## Introduction
+
+This is a web port of Vita3K, a PlayStation Vita emulator written in C++, compiled to WebAssembly (Wasm) with Emscripten. The project is statically hosted on GitHub Pages, where you can import the PlayStation Vita firmware/your own games and play directly in modern browsers (Chrome and Firefox for now since Safari does not support Memory64).
+
+## Why
+
+I had two reasons:
+
+- Persona 4 Golden in browser :D
+- After seeing how far AI models have advanced, I wanted to see if an average university student who doesn't have much time but has a $20 subscription to Claude/ChatGPT and a bunch of free AI models could lead the AI models to make something extremely complex in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
+
 ## Gallery
 
 |               **Persona 4 Golden** by Atlus                   |                     **A Rose in the Twilight** by Nippon Ichi Software                         |
@@ -14,20 +25,22 @@
 | :----------------------------------------------------------------: | :------------------------------------------------------------------------: |
 | ![Fruit Ninja Screenshot](./_readme/screenshots/Fruit%20Ninja.png) | ![Jetpack Joyride Screenshot](./_readme/screenshots/Jetpack%20Joyride.png) |
 
-## What is this?
+## Compatibility
 
-This is a web port of Vita3K, a PlayStation Vita emulator written in C++, compiled to WebAssembly (Wasm) with Emscripten. The project is statically hosted on GitHub Pages, where you can import the PlayStation Vita firmware/your own games and play directly in modern browsers (Chrome and Firefox for now since Safari does not support Memory64).
+The web port of the emulator currently runs an unknown subset of homebrew programs and commercial games.
 
-\screenshots{don't forget to add the website screenshots}
+## Performance
 
-## Why?
+The following table provides FPS measurements for P4G and Limbo in default configurations for the player (AOT compilation, multi-threading, Memory64, and a separate thread for rendering 3D scenes).
 
-I had two reasons:
+|                                                                                                     | Persona 4 Golden                                                            | Limbo                                                                                                 |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Honor NMH-WDX9, a laptop<br>- AMD Ryzen 5 5500U;<br>- AMD Radeon RX Vega 7;<br>- 16 GB of DDR4 RAM. | 960x544: 30 FPS (Chrome, Windows 10)<br>960x544: 20-30 FPS (Firefox, NixOS) | 960x544: 30 FPS (Firefox, NixOS)<br>An FPS hack works here and gives 48-55 FPS                        |
+| PC<br>- Ryzen 3 3100;<br>- AMD Radeon RX 6600;<br>- 16 GB of DDR4 RAM.                              | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)                  | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)<br>An FPS hack works here and gives 60 FPS |
 
-- Persona 4 Golden in browser :D
-- After seeing how far AI models have advanced, I wanted to see if an average university student who doesn't have much time but has a $20 subscription to Claude/ChatGPT and a bunch of free AI models could lead the AI models to make something extremely complex in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
+Phones have horrible performance as of now, with the most likely cause being a heavy difference on how WebGPU calls are implemented and executed under the hood in Android in contrast to desktop platforms.
 
-## How does this work?
+## How does this work
 
 ### Introduction
 
@@ -90,21 +103,6 @@ The desktop version of Vita3K is using a Simple DirectMedia Layer (SDL) to handl
 As for the emulator UI, a Vue 3 framework was used. The in-game system dialogs also use Vue 3 components: whenever `sceMsgDialogInit` (or another system library function) is executed, the emulated game code in Wasm exits into the host code in another Wasm module (`msg_dialog_bridge.cpp` in this case), where the host exits into JS (a bit more expensive boundary crossing in contrast to Wasm module <-> Wasm module), where a Vue 3 component is then rendered, and the user's dialog button click is then stored in the emulator memory, which is then read when the game calls `sceMsgDialogGetStatus`. Touch/overlay inputs, audio, and threads also cross the JS boundary.
 
 The storage is implemented via Origin Private File System (OPFS). The firmware, game, and saves are stored there. The web port allows you to see and edit files in the Files page.
-
-## Compatibility
-
-The web port of the emulator currently runs an unknown subset of homebrew programs and commercial games.
-
-## Performance
-
-The following table provides FPS measurements for P4G and Limbo in default configurations for the player (AOT compilation, multi-threading, Memory64, and a separate thread for rendering 3D scenes).
-
-|                                                                                                     | Persona 4 Golden                                                            | Limbo                                                                                                 |
-| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Honor NMH-WDX9, a laptop<br>- AMD Ryzen 5 5500U;<br>- AMD Radeon RX Vega 7;<br>- 16 GB of DDR4 RAM. | 960x544: 30 FPS (Chrome, Windows 10)<br>960x544: 20-30 FPS (Firefox, NixOS) | 960x544: 30 FPS (Firefox, NixOS)<br>An FPS hack works here and gives 48-55 FPS                        |
-| PC<br>- Ryzen 3 3100;<br>- AMD Radeon RX 6600;<br>- 16 GB of DDR4 RAM.                              | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)                  | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)<br>An FPS hack works here and gives 60 FPS |
-
-Phones have horrible performance as of now, with the most likely cause being a heavy difference on how WebGPU calls are implemented and executed under the hood in Android in contrast to desktop platforms.
 
 ## License
 
