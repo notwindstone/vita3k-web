@@ -1,14 +1,12 @@
 # Vita3K web port
 
-## Introduction
-
 This is a web port of Vita3K, a PlayStation Vita emulator written in C++, compiled to WebAssembly (Wasm) with Emscripten. The project is statically hosted on GitHub Pages, where you can import the PlayStation Vita firmware/your own games and play directly in modern browsers (Chrome and Firefox for now since Safari does not support Memory64).
 
 ## Why
 
 I had two reasons:
 
-- Persona 4 Golden in browser :D
+- Persona 4 Golden and other PS Vita games in browser :D
 - After seeing how far AI models have advanced, I wanted to see if an average university student who does not have much time but has a $20 subscription to Claude/ChatGPT and a bunch of free AI models could lead the AI models to make something extremely complex in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
 
 ## Gallery
@@ -42,7 +40,7 @@ Phones have horrible performance as of now, with the most likely cause being a h
 
 ## How does this work
 
-### Introduction
+### Overview
 
 Since this is a web port of Vita3K, this project is built with a restricted set of tools available in browsers and is based on JavaScript (JS) and Wasm. The PlayStation Vita system libraries use both the low-level emulation (LLE) and high-level emulation (HLE) methods. HLE is used for emulating most system libraries while LLE is used for some exceptions, like `sysmodule.skprx`, `libscemp4`, or `libc.suprx`. The ARM/Thumb instruction set architecture (ISA) for the games uses a two-step translation layer (ARM/Thumb -> Dynarmic IR -> Wasm).
 
@@ -66,13 +64,74 @@ This is a helper function inside the AOT module that is used to find a Wasm bloc
 
 This is another helper function, but it is located in a separate small Wasm module and is used to find a JIT compiled Wasm module in a gradually filled (on every new JIT compiled Wasm modules) hash map of 2048 entries. The hash map keys represent translation state (Thumb or ARM, Floating-Point Status and Control Register (FPSCR) mode, etc.) + PC, e.g., <code>0000000181000100</code> for PC <code>0x81000100</code> and Thumb (1). Now, the hash map points to the <code>run</code> function of a Wasm module in contrast to <code>transfer</code>'s table that pointed to both the Wasm block and the Wasm function. That Wasm function is then called indirectly, making a Wasm module boundary crossing. If the hash map does not have an entry for such key, <code>Miss</code> is returned by the dispatcher, which leads to another Wasm module boundary crossing - now we are in the emulator's module written in C++ and compiled into Wasm by Emscripten. The JIT compiler is called, the JS boundary crossing is happening for a Wasm module compilation, and <code>region_cache</code> is then filled with the newly created Wasm module. What is <code>region_cache</code>? It is a private ordered tree (<code>std::map</code>) with the limit of 1024 cached JIT compiled Wasm modules. The dispatcher's hash map is a derived copy of that record.
 
-If you properly understood the previous paragraph, then you should have a question by now: <code>region_cache</code> inside the emulator's module stores up to 1024 modules, but the dispatcher's hash map that is derived from <code>region_cache</code> can store up to 2048 modules. What is going on here? The answer that several AI models gave me here is that "hash maps stay fast only when roughly half empty, so the map is built twice as big as the cache on purpose". In a third volume of the book "Art of Computer Programming" by D. E. Knuth, it is demonstrated that the average number of accesses in a successful search by linear probing with a load factor of 0.5 is <strong>1.5</strong>, with a load factor of 0 is <strong>1</strong>, and with a load factor of 0.8 is <strong>3</strong>, making the hash map size of 2048 entries, apparently, a sweet spot in case of <code>region_cache</code>'s size of 1024 entries.
+If you properly understood the previous paragraph, then you should have a question by now: <code>region_cache</code> inside the emulator's module stores up to 1024 modules, but the dispatcher's hash map that is derived from <code>region_cache</code> can store up to 2048 modules. What is going on here? The answer that several AI models gave me here is that "hash maps stay fast only when roughly half empty, so the map is built twice as big as the cache on purpose". Now, I decided to find out where this statement came from. In a third volume of the book "Art of Computer Programming" by D. E. Knuth, it is demonstrated that the average number of accesses in a successful search by linear probing with a load factor of 0.5 is <strong>1.5</strong>, with a load factor of 0 is <strong>1</strong>, and with a load factor of 0.8 is <strong>3</strong>, making the hash map size of 2048 entries, apparently, a sweet spot in case of <code>region_cache</code>'s size of 1024 entries.
+
+Alright, but how do ARM/Thumb instructions, Dynarmic IR, and Wasm instructions look like?
+
+Claude Opus 5.5 decided to give us this annotated example (not pseudo-code). In short, these two ARM/Thumb instructions discard local variables, restore saved registers, and return to the caller.
+
+```
+80318f10:  03 b0    add  sp, #12          ; drop 12 bytes of locals
+80318f12:  30 bd    pop  {r4, r5, pc}     ; restore r4, r5 and return
+```
+
+Two ARM/Thumb instructions then are represented in the following Dynarmic IR.
+
+```
+Block: location={0000000180318f10}          ← PC 0x80318f10, translation state 1 (Thumb)
+cycles=2, entry_cond=al
+%1  = GetRegister sp
+%2  = Add32 %1, #0xc, #0                    ┐ add sp, #12
+      SetRegister sp, %2                    ┘
+%4  = GetRegister sp
+%5  = ReadMemory32 #0x180318f12, %4, <acc>  ┐ load [sp]     → r4
+      SetRegister r4, %5                    │
+%7  = Add32 %4, #0x4, #0                    │
+%8  = ReadMemory32 #0x180318f12, %7, <acc>  │ load [sp+4]   → r5
+      SetRegister r5, %8                    │ pop {r4, r5, pc}
+%10 = Add32 %7, #0x4, #0                    │
+%11 = ReadMemory32 #0x180318f12, %10, <acc> │ load [sp+8]   → pc
+      UpdateUpperLocationDescriptor         │
+      BXWritePC %11                         │ jump, switching ARM/Thumb by bit 0
+%14 = Add32 %10, #0x4, #0                   │
+      SetRegister sp, %14                   ┘ sp += 12
+terminal = PopRSBHint{}
+```
+
+Which corresponds to these Wasm instructions:
+
+```wasm
+;; add sp, #12  (%1, %2)
+local.get 24  i32.const 12  i32.add  local.set 24
+;; %4 = sp; the address is sp itself (local 82), page = addr >> 12 (local 81)
+local.get 82  i32.const 12  i32.shr_u  local.set 81
+;; the gate: all three conditions combined, one branch
+local.get 81  i32.eqz  i32.eqz                         ;; page != 0
+local.get 9   local.get 81  i64.extend_i32_u  i64.add  ;; perms[page]
+i32.load8_u  i32.const 1  i32.and  i32.const 1  i32.eq ;; … has Read
+i32.and
+local.get 82  i32.const 4095  i32.and
+i32.const 4092  i32.gt_u  i32.eqz                      ;; 4 bytes fit in the page
+i32.and
+i32.eqz
+if                                   ;; any check failed → checked C++ helper
+  local.get 0  local.get 63  i32.const 0x504  call $mem_read   ;; 4 bytes, reason 5
+  if (failed): call $fault(state, 0x80318f12, …); return Fault
+  local.get 0  i32.load offset=104   local.set 73              ;; value the helper wrote
+else                                 ;; hot path
+  local.get 82  i64.extend_i32_u  i64.const 0x1_0000_0000  i64.add
+  i32.load  local.set 73
+end
+local.get 73  local.set 15           ;; SetRegister r4, %5
+```
+
+As you can see, the compiled Wasm does quite a lot of things for two ARM/Thumb instructions. Can this be optimized? Perhaps...
 
 </details>
 
 ### Rendering
 
-PlayStation Vita has its own low-level graphics API named GXM that handles rendering and shaders. Shaders have their own format named GXP. To make it possible for emulated game frames to be rendered on a browser canvas element, the GXM calls and GXP shaders are translated to WebGPU calls and WebGPU Shader Language (WGSL), respectively, at runtime. To avoid lots of expensive JS boundary crossings, the GXM calls are batched per scene (between the `sceGxmBeginScene` and `sceGxmEndScene` calls), and one frame can have more than one scene. GXP shaders are translated to Standard Portable Intermediate Representation (SPIR-V), and SPIR-V is translated to WGSL with Naga. GXP shader conversions are cached.
+PlayStation Vita has its own low-level graphics API named GXM that handles rendering and shaders. Shaders have their own format named GXP. To make it possible for emulated game frames to be rendered on a browser canvas element, the GXM calls and GXP shaders are translated to WebGPU calls and WebGPU Shader Language (WGSL), respectively, at runtime. To avoid lots of expensive JS boundary crossings, the GXM calls are batched per scene (between the `sceGxmBeginScene` and `sceGxmEndScene` calls), and one frame can have more than one scene (which implies there might be an improvement to this batching since the end user only sees the rendered frames). GXP shaders are translated to Standard Portable Intermediate Representation (SPIR-V), and SPIR-V is translated to WGSL with Naga. GXP shader conversions are cached.
 
 PlayStation Vita display has a resolution of 960x544 pixels, so the web port renders games in this resolution as well with an option to enable 2x scaling.
 
