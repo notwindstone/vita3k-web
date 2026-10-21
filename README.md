@@ -75,7 +75,7 @@ Claude Opus 5.5 decided to give us this annotated example (not pseudo-code). In 
 80318f12:  30 bd    pop  {r4, r5, pc}     ; restore r4, r5 and return
 ```
 
-Two ARM/Thumb instructions then are represented in the following Dynarmic IR.
+Two ARM/Thumb instructions are then represented as the following Dynarmic IR.
 
 ```
 Block: location={0000000180318f10}          ← PC 0x80318f10, translation state 1 (Thumb)
