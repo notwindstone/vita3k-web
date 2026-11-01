@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -37,7 +37,7 @@ jobs:
 
       # Emscripten's system libraries for Memory64 and pthreads take minutes
       # to build; the flake's shell keeps them in .cache/emscripten.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .cache/emscripten
           key: emscripten-${{ hashFiles('flake.lock') }}
@@ -45,8 +45,8 @@ jobs:
       - name: Build
         run: nix develop --command browser/pages/build.sh
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: build/pages
 
@@ -59,4 +59,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
