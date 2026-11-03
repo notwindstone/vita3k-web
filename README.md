@@ -1,13 +1,17 @@
 # Vita3K web port
 
-This is a web port of Vita3K, a PlayStation Vita emulator written in C++, compiled to WebAssembly (Wasm) with Emscripten. The project is statically hosted on GitHub Pages, where you can import the PlayStation Vita firmware/your own games and play directly in modern browsers (Chrome and Firefox for now since Safari does not support Memory64).
+This is a web port of Vita3K (a PlayStation Vita emulator written in C++) compiled to WebAssembly (Wasm) with Emscripten. It accepts a PlayStation Vita firmware and Vita3K homebrews (a small subset of whatever Vita3K itself supports). The web port is statically hosted on GitHub Pages!
+
+**Needs modern browsers (Chrome and Firefox for now since Safari does not support Memory64)**
 
 ## Why
 
 I had two reasons:
 
 - Persona 4 Golden and other PS Vita games in browser :D
-- After seeing how far AI models have advanced, I wanted to see if an average university student who does not have much time but has a $20 subscription to Claude/ChatGPT and a bunch of free AI models could lead the AI models to make something extremely complex in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
+- After seeing how far AI models have advanced, I wanted to see if an average university student who does not have much time but has a $20 subscription to Claude/ChatGPT and a bunch of free AI models could prompt the AI models to make something extremely complex in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
+
+> Update: apparently, a LOT of people thought the same, which is the reason one can see bazillion of recompiled games lately.
 
 ## Gallery
 
