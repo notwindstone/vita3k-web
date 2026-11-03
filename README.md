@@ -189,7 +189,7 @@ The web-specific code did not have any human contributions and was fully written
 
 ## Donations
 
-Simply support the original creators of Vita3K.
+Simply support the creators of Vita3K.
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/vita3k)
 
