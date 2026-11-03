@@ -1,6 +1,6 @@
 # Vita3K web port
 
-This is a web port of Vita3K (a PlayStation Vita emulator written in C++) compiled to WebAssembly (Wasm) with Emscripten. It accepts a PlayStation Vita firmware and Vita3K homebrews (a small subset of whatever Vita3K itself supports). The web port is statically hosted on GitHub Pages!
+This is a web port of Vita3K (a PlayStation Vita emulator written in C++) compiled to WebAssembly (Wasm) with Emscripten. It accepts a PlayStation Vita firmware and Vita3K games & homebrews (a small subset of whatever Vita3K itself supports). The web port is statically hosted on GitHub Pages!
 
 **Needs modern browsers (Chrome and Firefox for now since Safari does not support Memory64)**
 
@@ -8,7 +8,7 @@ This is a web port of Vita3K (a PlayStation Vita emulator written in C++) compil
 
 I had two reasons:
 
-- Persona 4 Golden and other PS Vita games in browser :D
+- Persona 4 Golden and other PlayStation Vita games in browser :D
 - After seeing how far AI models have advanced, I wanted to see if an average university student who does not have much time but has a $20 subscription to Claude/ChatGPT and a bunch of free AI models could prompt the AI models to make something extremely complex in a short amount of time that would usually take years of work. Turns out, with Claude Opus 5.5 and GPT-6 Astra, this is indeed possible.
 
 > Update: apparently, a LOT of people thought the same, which is the reason one can see bazillion of recompiled games lately.
@@ -29,7 +29,7 @@ I had two reasons:
 
 ## Compatibility
 
-The web port of the emulator currently runs an unknown subset of homebrew programs and commercial games.
+The web port of the emulator currently runs a **very** small subset of homebrew programs and commercial games that includes but is not limited to Persona 4 Golden, Limbo, and Fruit Ninja. There is still a lot of PlayStation Vita system calls not properly implemented yet, which is the reason for such low compatibility.
 
 ## Performance
 
@@ -40,7 +40,7 @@ The following table provides FPS measurements for P4G and Limbo in default confi
 | Honor NMH-WDX9, a laptop<br>- AMD Ryzen 5 5500U;<br>- AMD Radeon RX Vega 7;<br>- 16 GB of DDR4 RAM. | 960x544: 30 FPS (Chrome, Windows 10)<br>960x544: 20-30 FPS (Firefox, NixOS) | 960x544: 30 FPS (Firefox, NixOS)<br>An FPS hack works here and gives 48-55 FPS                        |
 | PC<br>- Ryzen 3 3100;<br>- AMD Radeon RX 6600;<br>- 16 GB of DDR4 RAM.                              | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)                  | Both 960x544 and 1920x1088:<br>30 FPS (Chrome, Windows 10)<br>An FPS hack works here and gives 60 FPS |
 
-Phones have horrible performance as of now, with the most likely cause being a heavy difference on how WebGPU calls are implemented and executed under the hood in Android in contrast to desktop platforms.
+Phones have horrible performance as of now, with the most likely cause being a heavy difference on how WebGPU calls are implemented and executed under the hood in Android in contrast to desktop platforms. I could allow Claude to profile the performance via Android Debug Bridge (ADB), but... eh
 
 ## How does this work
 
@@ -59,6 +59,8 @@ Okay, but what is a JIT compiler here? It is a compiler that compiles Wasm modul
 If you want to get deeper into technical details, expand the following block.
 
 <details>
+
+Since the execution of translated game instructions is non-trivial, how does the produced Wasm translation know which instruction to execute next? Well, look at this:
 
 1. <code>transfer(state, remaining, pc) -> ExitReason</code>
 
